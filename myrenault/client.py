@@ -23,13 +23,14 @@ def monitor_request(func):
     return wrapper
 
 class MyRenaultClient:
-    def __init__(self):
-        self.email = os.environ.get("RENAULT_EMAIL")
-        self.password = os.environ.get("RENAULT_PASSWORD")
-        if not self.email or not self.password:
-             raise ValueError("RENAULT_EMAIL and RENAULT_PASSWORD must be set in environment variables.")
+    def __init__(self, email=None, password=None, websession=None):
+        self.email = email or os.environ.get("RENAULT_EMAIL")
+        self.password = password or os.environ.get("RENAULT_PASSWORD")
 
-        self.websession = None
+        if not self.email or not self.password:
+             raise ValueError("Email and Password must be provided either as arguments or environment variables.")
+
+        self.websession = websession
         self.client = None
         self.vehicle_cache = {} # VIN -> vehicle object
 

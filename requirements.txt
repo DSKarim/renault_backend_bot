@@ -3,3 +3,5 @@ requests
 python-dotenv
 renault-api
 aiohttp
+fastapi
+uvicorn
