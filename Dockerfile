@@ -13,5 +13,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the current directory contents into the container at /app
 COPY . .
 
-# Run bot.py when the container launches
-CMD ["python", "bot.py"]
+# Run api.py via uvicorn when the container launches
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

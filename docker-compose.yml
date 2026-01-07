@@ -1,11 +1,11 @@
 services:
-  bot:
+  api:
     build: .
     restart: unless-stopped
+    ports:
+      - "8000:8000"
     environment:
-      - TELEGRAM_TOKEN=${TELEGRAM_TOKEN}
-      - AUTHORIZED_USER_ID=${AUTHORIZED_USER_ID}
-      - VEHICLE_VIN=${VEHICLE_VIN}
+      # These might be optional if passed via headers, but good to keep if used as defaults
       - RENAULT_EMAIL=${RENAULT_EMAIL}
       - RENAULT_PASSWORD=${RENAULT_PASSWORD}
     volumes:
