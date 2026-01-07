@@ -1,104 +1,105 @@
-# 🚗 Renault Telegram Bot
+# 🚗 MyRenault API Backend
 
-Bot Telegram personnel pour piloter une Renault électrique (ZOE, Megane E-Tech, Twingo ZE, etc.)
-via l'API non officielle My Renault.
+A generic, stateless FastAPI backend for controlling Renault electric vehicles (ZOE, Megane E-Tech, Twingo ZE, etc.) via the unofficial My Renault API.
 
-Ce projet permet d'interagir avec votre véhicule directement depuis Telegram pour obtenir des informations en temps réel et lancer des actions à distance.
+This project wraps the [renault-api](https://github.com/hacf-fr/renault-api) library into a RESTful API, designed to serve mobile applications (like the [planned Android App](PLAN_ANDROID.md)), dashboards, or home automation systems.
 
-## ✨ Fonctions Actuelles
-- **🔋 État batterie & autonomie** : Consultez le pourcentage de batterie, l'autonomie restante et le statut de charge (`/etat`).
-- **🛣️ Kilométrage** : Affiche le kilométrage total du véhicule.
-- **🌡️ Climatisation** :
-    - Démarrage à distance (`/clim_on`) (préréglé à 21°C).
-    - Arrêt (`/clim_off`) (annule la programmation).
-- **📍 Localisation** : Affiche la position GPS du véhicule sur une carte (`/map`).
-- **🔔 Monitoring** : Vérification automatique toutes les 5 minutes.
-    - Alerte si batterie faible (< 20%).
-    - Alerte si charge atteinte (>= 80%).
+## ✨ Features
 
-## 🚀 Prochaines Étapes
-- [ ] **Programmation de charge** : Ajouter la possibilité de définir des plages horaires de charge.
-- [ ] **Historique** : Sauvegarder les données de charge dans une base de données (SQLite/CSV).
-- [ ] **Gestion Multi-véhicules** : Supporter plusieurs VINs sur le même compte.
-- [ ] **Notifications plus fines** : Configurer les seuils d'alerte via Telegram.
+- **🔋 Battery Status**: Get battery level (%), autonomy (km), charging status, and plug status.
+- **🛣️ Cockpit**: Retrieve total mileage.
+- **📍 Location**: Get the vehicle's GPS position (latitude, longitude).
+- **🌡️ HVAC Control**: Start (with temperature) or stop air conditioning/heating.
+- **⚡ Charge Control**: Start or cancel charging.
+- **🔔 Alerts**: Blink lights or honk (to find the vehicle).
+- **🔒 Multi-User**: Stateless architecture allows any user to connect by providing credentials in request headers.
 
-## 📱 Développement Mobile / API
-Vous souhaitez utiliser ce code comme backend pour une application Android ou iOS ?
-Consultez le guide dédié : [README_BACKEND.md](README_BACKEND.md)
+## 🚀 Getting Started
 
-### Tester l'API en local
+### Prerequisites
 
-Avant de développer la partie Frontend (Android), vous pouvez tester l'API localement.
+- Python 3.12+
+- A valid My Renault account (Email & Password)
+- Your Vehicle Identification Number (VIN)
 
-1.  **Lancer le serveur API** :
+### Local Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-repo/myrenault-api.git
+    cd myrenault-api
+    ```
+
+2.  **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Run the server:**
     ```bash
     uvicorn api:app --reload
     ```
-    Le serveur sera accessible sur `http://127.0.0.1:8000`.
+    The API will be available at `http://127.0.0.1:8000`.
 
-2.  **Tester avec `curl`** :
-    Vous pouvez envoyer une requête POST pour récupérer l'état de la batterie. Remplacez `VOTRE_EMAIL`, `VOTRE_MOT_DE_PASSE` et `VOTRE_VIN` par vos informations réelles.
+### Docker Deployment
 
+1.  **Build and run with Docker Compose:**
     ```bash
-    curl -X 'POST' \
-      'http://127.0.0.1:8000/api/v1/vehicle/VOTRE_VIN/battery' \
-      -H 'accept: application/json' \
-      -H 'x-renault-email: VOTRE_EMAIL' \
-      -H 'x-renault-password: VOTRE_MOT_DE_PASSE'
+    docker-compose up -d --build
     ```
 
-    Si tout fonctionne, vous recevrez une réponse JSON avec les informations de la batterie.
+2.  **Verify:**
+    Check the logs to ensure the server is running:
+    ```bash
+    docker-compose logs -f
+    ```
 
-## 🛠️ Installation & Démarrage
+## 📖 API Usage
 
-Voir le guide de déploiement complet : [DEPLOY.md](DEPLOY.md)
+The API uses **Headers** for authentication. You must provide your Renault credentials with every request. This allows the backend to be stateless and support multiple users.
 
-### En résumé :
+**Required Headers:**
+- `x-renault-email`: Your My Renault email address.
+- `x-renault-password`: Your My Renault password.
 
-1.  **Cloner le repo**
-2.  **Installer les dépendances** : `pip install -r requirements.txt`
-3.  **Configurer** : Renommer `.env.example` en `.env` et remplir les infos.
-4.  **Lancer** : `python bot.py`
+*(Note: You can also set `RENAULT_EMAIL` and `RENAULT_PASSWORD` as environment variables for a default fallback, useful for single-user deployments).*
 
-## 📚 Fonctionnalités disponibles via la librairie `renault-api`
+### Examples
 
-La librairie sous-jacente [renault-api](https://github.com/hacf-fr/renault-api) permet d'accéder à de nombreuses informations et actions. Voici une liste non exhaustive des capacités techniques offertes par l'API, indépendamment de ce qui est implémenté actuellement dans ce bot.
+#### 1. Get Battery Status
+```bash
+curl -X 'GET' \
+  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/battery' \
+  -H 'accept: application/json' \
+  -H 'x-renault-email: your.email@example.com' \
+  -H 'x-renault-password: your_password'
+```
 
-### Lecture de données
-- **Batterie** : Niveau de charge (%), autonomie (km), statut de branchement, statut de charge (en cours, erreur, etc.), temps restant.
-- **Cockpit** : Kilométrage total, autonomie carburant (pour hybrides).
-- **Localisation** : Position GPS du véhicule (si activé dans le véhicule).
-- **Climatisation (HVAC)** : Statut de la climatisation, température extérieure (selon modèles).
-- **Charge** : Historique des charges, calendrier de charge, mode de charge.
-- **Alertes** : Avertissements du tableau de bord (pression pneus, airbag, etc.).
-- **Verrouillage** : État des portes et du coffre (ouvert/fermé/verrouillé) (selon modèles).
-- **Pression des pneus** : Pression détaillée par pneu (selon modèles).
+#### 2. Start HVAC (Air Conditioning)
+```bash
+curl -X 'POST' \
+  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/hvac-start?temp=21' \
+  -H 'accept: application/json' \
+  -H 'x-renault-email: your.email@example.com' \
+  -H 'x-renault-password: your_password'
+```
 
-### Actions à distance
-- **Charge** : Démarrer/Arrêter la charge, changer le mode (immédiat/programmé).
-- **Climatisation** : Démarrer/Arrêter le pré-conditionnement, définir le planning.
-- **Avertisseurs** : Faire clignoter les phares, faire clignoter les phares + klaxonner (pour retrouver le véhicule).
+#### 3. Get Location
+```bash
+curl -X 'GET' \
+  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/location' \
+  -H 'accept: application/json' \
+  -H 'x-renault-email: your.email@example.com' \
+  -H 'x-renault-password: your_password'
+```
 
----
+## 🗺️ Roadmap
 
-## 📌 Spécificités & Compatibilité Zoe Phase 2 (Zoe50 / Model X102VE)
+- [ ] **Android Application**: A native Android app is planned to consume this API. See [PLAN_ANDROID.md](PLAN_ANDROID.md) for details.
+- [ ] **Wear OS Support**: Companion app for smartwatches.
+- [ ] **Charging Schedule**: Ability to set charging schedules via API.
+- [ ] **Notifications**: Push notifications for battery levels (via Firebase).
 
-La **Renault Zoe Phase 2 (produite après mi-2019)** dispose d'une architecture plus moderne que la Phase 1 (Zoe40), mais certaines remontées d'informations comportent des particularités ou limitations connues via l'API.
+## ⚠️ Disclaimer
 
-| Fonctionnalité | Support Zoe Ph2 | Notes spécifiques |
-| :--- | :---: | :--- |
-| **État Batterie** | ✅ | `batteryTemperature` remonte souvent des valeurs incorrectes. `chargingInstantaneousPower` (puissance instantanée) peut être erroné. |
-| **Démarrage Charge** | ✅ | Supporté (`/charge_on`, `/charge_off`). |
-| **Démarrage Clim** | ✅ | Supporté (`/clim_on`). Note : L'action "Annuler" (`/clim_off`) est envoyée mais souvent ignorée par le véhicule (limitation Renault). |
-| **Statut Clim** | ❌ | Le endpoint `hvac-status` renvoie souvent une erreur ou n'est pas supporté. On ne peut pas facilement savoir si la clim tourne. |
-| **Localisation** | ✅ | Fonctionne correctement. |
-| **Kilométrage** | ✅ | Remonte via le module "Cockpit". |
-| **Mode Charge** | ⚠️ | La lecture du mode remonte `always` ou `scheduled`, ce qui diffère légèrement des anciens modèles (`always_charging`). |
-| **Klaxon & Phares** | ✅ | Supporté sur la plupart des Zoe50 (contrairement aux Zoe40). |
-| **Verrouillage** | ❓ | Dépend de la version précise du véhicule et des options. Souvent non disponible sur Zoe. |
-
-*Ces informations sont basées sur la documentation de la communauté open-source et peuvent évoluer avec les mises à jour des calculateurs Renault.*
-
-## ⚠️ Avertissement
-Ce projet utilise une **API non officielle** de Renault. Elle peut changer à tout moment sans préavis.
-L'utilisation de ce bot est sous votre entière responsabilité.
+This project uses an **unofficial API** from Renault. It may change or break at any time without notice. Use this software at your own risk. The developers are not affiliated with Renault.
