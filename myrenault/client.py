@@ -9,6 +9,7 @@ from renault_api.renault_client import RenaultClient
 # Configure logger for this module
 logger = logging.getLogger(__name__)
 
+
 def monitor_request(func):
     @wraps(func)
     async def wrapper(self, *args, **kwargs):
@@ -22,17 +23,19 @@ def monitor_request(func):
             raise
     return wrapper
 
+
 class MyRenaultClient:
     def __init__(self, email=None, password=None, websession=None):
         self.email = email or os.environ.get("RENAULT_EMAIL")
         self.password = password or os.environ.get("RENAULT_PASSWORD")
 
         if not self.email or not self.password:
-             raise ValueError("Email and Password must be provided either as arguments or environment variables.")
+            raise ValueError(
+                "Email and Password must be provided either as arguments or environment variables.")
 
         self.websession = websession
         self.client = None
-        self.vehicle_cache = {} # VIN -> vehicle object
+        self.vehicle_cache = {}  # VIN -> vehicle object
 
         self.started_at = datetime.datetime.now()
         self.stats = {
@@ -51,7 +54,8 @@ class MyRenaultClient:
     async def get_session(self):
         if self.websession is None or self.websession.closed:
             self.websession = aiohttp.ClientSession()
-            self.client = RenaultClient(websession=self.websession, locale="fr_FR")
+            self.client = RenaultClient(
+                websession=self.websession, locale="fr_FR")
             await self.client.session.login(self.email, self.password)
         return self.client
 
@@ -60,10 +64,10 @@ class MyRenaultClient:
         vin = vin.strip().upper()
 
         if vin in self.vehicle_cache:
-             if not self.websession or self.websession.closed:
-                 self.vehicle_cache = {}
-             else:
-                 return self.vehicle_cache[vin]
+            if not self.websession or self.websession.closed:
+                self.vehicle_cache = {}
+            else:
+                return self.vehicle_cache[vin]
 
         client = await self.get_session()
 
@@ -76,6 +80,18 @@ class MyRenaultClient:
             raise
 
         logger.info(f"Found {len(accounts)} Renault accounts.")
+
+        # Performance optimization:
+        # If the user has only one account (common case), we skip listing all vehicles
+        # and directly instantiate the vehicle object. This saves one API call per request.
+        # If the VIN is invalid, the subsequent operation (e.g., battery_status) will fail.
+        if len(accounts) == 1:
+            account = accounts[0]
+            logger.info(
+                f"Single account detected ({account.account_id}). Optimistically returning vehicle.")
+            api_vehicle = await account.get_api_vehicle(vin)
+            self.vehicle_cache[vin] = api_vehicle
+            return api_vehicle
 
         found_vins = []
 
@@ -92,16 +108,20 @@ class MyRenaultClient:
                     found_vins.append(v_vin)
 
                     if v_vin == vin:
-                         logger.info(f"Vehicle found in account {account.account_id}")
-                         api_vehicle = await account.get_api_vehicle(vin)
-                         self.vehicle_cache[vin] = api_vehicle
-                         return api_vehicle
+                        logger.info(
+                            f"Vehicle found in account {account.account_id}")
+                        api_vehicle = await account.get_api_vehicle(vin)
+                        self.vehicle_cache[vin] = api_vehicle
+                        return api_vehicle
             except Exception as e:
-                logger.error(f"Error checking account {account.account_id}: {e}")
+                logger.error(
+                    f"Error checking account {account.account_id}: {e}")
                 continue
 
-        logger.error(f"Vehicle with VIN {vin} not found. Available VINs: {found_vins}")
-        raise ValueError(f"Vehicle with VIN {vin} not found in any account. Found: {found_vins}")
+        logger.error(
+            f"Vehicle with VIN {vin} not found. Available VINs: {found_vins}")
+        raise ValueError(
+            f"Vehicle with VIN {vin} not found in any account. Found: {found_vins}")
 
     @monitor_request
     async def battery_status(self, vin):
@@ -164,12 +184,12 @@ class MyRenaultClient:
         # The library default sends action='stop', but 'cancel' appears to be required or safer for the 'ChargingStart' type.
         # We perform a manual request here to override the body.
         try:
-             # Retrieve the endpoint URL using the standard mechanism
-             endpoint = await vehicle.get_full_endpoint("actions/charge-stop")
+            # Retrieve the endpoint URL using the standard mechanism
+            endpoint = await vehicle.get_full_endpoint("actions/charge-stop")
 
-             # Construct the custom payload
-             # We use "cancel" instead of "stop" which causes the error
-             json_payload = {
+            # Construct the custom payload
+            # We use "cancel" instead of "stop" which causes the error
+            json_payload = {
                 "data": {
                     "type": "ChargingStart",
                     "attributes": {
@@ -178,13 +198,13 @@ class MyRenaultClient:
                 }
             }
 
-             # Use the underlying session to send the request
-             response = await vehicle.session.http_request("POST", endpoint, json_payload)
-             return response
+            # Use the underlying session to send the request
+            response = await vehicle.session.http_request("POST", endpoint, json_payload)
+            return response
         except Exception:
-             # If the manual fix fails, fallback to library method (or just re-raise if library method is same as failed)
-             # But here we just assume the fix is better.
-             raise
+            # If the manual fix fails, fallback to library method (or just re-raise if library method is same as failed)
+            # But here we just assume the fix is better.
+            raise
 
     @monitor_request
     async def blink_lights(self, vin):
