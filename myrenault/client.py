@@ -54,9 +54,12 @@ class MyRenaultClient:
     async def get_session(self):
         if self.websession is None or self.websession.closed:
             self.websession = aiohttp.ClientSession()
+
+        if self.client is None:
             self.client = RenaultClient(
                 websession=self.websession, locale="fr_FR")
             await self.client.session.login(self.email, self.password)
+
         return self.client
 
     async def get_vehicle(self, vin):

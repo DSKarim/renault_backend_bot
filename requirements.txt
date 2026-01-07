@@ -1,7 +1,7 @@
-python-telegram-bot[job-queue]>=21.0
 requests
 python-dotenv
 renault-api
 aiohttp
 fastapi
 uvicorn
+aiofiles
