@@ -26,6 +26,29 @@ Ce projet permet d'interagir avec votre véhicule directement depuis Telegram po
 Vous souhaitez utiliser ce code comme backend pour une application Android ou iOS ?
 Consultez le guide dédié : [README_BACKEND.md](README_BACKEND.md)
 
+### Tester l'API en local
+
+Avant de développer la partie Frontend (Android), vous pouvez tester l'API localement.
+
+1.  **Lancer le serveur API** :
+    ```bash
+    uvicorn api:app --reload
+    ```
+    Le serveur sera accessible sur `http://127.0.0.1:8000`.
+
+2.  **Tester avec `curl`** :
+    Vous pouvez envoyer une requête POST pour récupérer l'état de la batterie. Remplacez `VOTRE_EMAIL`, `VOTRE_MOT_DE_PASSE` et `VOTRE_VIN` par vos informations réelles.
+
+    ```bash
+    curl -X 'POST' \
+      'http://127.0.0.1:8000/api/v1/vehicle/VOTRE_VIN/battery' \
+      -H 'accept: application/json' \
+      -H 'x-renault-email: VOTRE_EMAIL' \
+      -H 'x-renault-password: VOTRE_MOT_DE_PASSE'
+    ```
+
+    Si tout fonctionne, vous recevrez une réponse JSON avec les informations de la batterie.
+
 ## 🛠️ Installation & Démarrage
 
 Voir le guide de déploiement complet : [DEPLOY.md](DEPLOY.md)
