@@ -87,11 +87,13 @@ class MyRenaultClient:
         # Performance optimization:
         # If the user has only one account (common case), we skip listing all vehicles
         # and directly instantiate the vehicle object. This saves one API call per request.
-        # If the VIN is invalid, the subsequent operation (e.g., battery_status) will fail.
+        # If the VIN is invalid, the subsequent operation (e.g.,
+        # battery_status) will fail.
         if len(accounts) == 1:
             account = accounts[0]
             logger.info(
-                f"Single account detected ({account.account_id}). Optimistically returning vehicle.")
+                f"Single account detected ({
+                    account.account_id}). Optimistically returning vehicle.")
             api_vehicle = await account.get_api_vehicle(vin)
             self.vehicle_cache[vin] = api_vehicle
             return api_vehicle
