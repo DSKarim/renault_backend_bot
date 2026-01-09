@@ -31,7 +31,9 @@ class MyRenaultClient:
 
         if not self.email or not self.password:
             raise ValueError(
-                "Email and Password must be provided either as arguments or environment variables.")
+                "Email and Password must be provided either as arguments or "
+                "environment variables."
+            )
 
         self.websession = websession
         self.client = None
@@ -85,15 +87,17 @@ class MyRenaultClient:
         logger.info(f"Found {len(accounts)} Renault accounts.")
 
         # Performance optimization:
-        # If the user has only one account (common case), we skip listing all vehicles
-        # and directly instantiate the vehicle object. This saves one API call per request.
-        # If the VIN is invalid, the subsequent operation (e.g.,
-        # battery_status) will fail.
+        # If the user has only one account (common case), we skip listing all
+        # vehicles and directly instantiate the vehicle object. This saves one
+        # API call per request.
+        # If the VIN is invalid, the subsequent operation (e.g. battery_status)
+        # will fail.
         if len(accounts) == 1:
             account = accounts[0]
             logger.info(
-                f"Single account detected ({
-                    account.account_id}). Optimistically returning vehicle.")
+                f"Single account detected ({account.account_id}). "
+                "Optimistically returning vehicle."
+            )
             api_vehicle = await account.get_api_vehicle(vin)
             self.vehicle_cache[vin] = api_vehicle
             return api_vehicle
@@ -114,19 +118,23 @@ class MyRenaultClient:
 
                     if v_vin == vin:
                         logger.info(
-                            f"Vehicle found in account {account.account_id}")
+                            f"Vehicle found in account {account.account_id}"
+                        )
                         api_vehicle = await account.get_api_vehicle(vin)
                         self.vehicle_cache[vin] = api_vehicle
                         return api_vehicle
             except Exception as e:
                 logger.error(
-                    f"Error checking account {account.account_id}: {e}")
+                    f"Error checking account {account.account_id}: {e}"
+                )
                 continue
 
         logger.error(
             f"Vehicle with VIN {vin} not found. Available VINs: {found_vins}")
         raise ValueError(
-            f"Vehicle with VIN {vin} not found in any account. Found: {found_vins}")
+            f"Vehicle with VIN {vin} not found in any account. "
+            f"Found: {found_vins}"
+        )
 
     @monitor_request
     async def battery_status(self, vin):
@@ -186,7 +194,8 @@ class MyRenaultClient:
     async def charge_stop(self, vin):
         vehicle = await self.get_vehicle(vin)
         # Fix for 'invalid-body-format' on some vehicles (Zoe Phase 2)
-        # The library default sends action='stop', but 'cancel' appears to be required or safer for the 'ChargingStart' type.
+        # The library default sends action='stop', but 'cancel' appears to be
+        # required or safer for the 'ChargingStart' type.
         # We perform a manual request here to override the body.
         try:
             # Retrieve the endpoint URL using the standard mechanism
@@ -204,10 +213,13 @@ class MyRenaultClient:
             }
 
             # Use the underlying session to send the request
-            response = await vehicle.session.http_request("POST", endpoint, json_payload)
+            response = await vehicle.session.http_request(
+                "POST", endpoint, json_payload
+            )
             return response
         except Exception:
-            # If the manual fix fails, fallback to library method (or just re-raise if library method is same as failed)
+            # If the manual fix fails, fallback to library method (or just
+            # re-raise if library method is same as failed)
             # But here we just assume the fix is better.
             raise
 
@@ -226,7 +238,9 @@ class MyRenaultClient:
             current_version = importlib.metadata.version('renault-api')
 
             async with aiohttp.ClientSession() as session:
-                async with session.get('https://pypi.org/pypi/renault-api/json') as response:
+                async with session.get(
+                    'https://pypi.org/pypi/renault-api/json'
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
                         latest_version = data['info']['version']
