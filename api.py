@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Header, status
 from fastapi.staticfiles import StaticFiles
 from myrenault.client import MyRenaultClient
@@ -34,6 +34,15 @@ class LocationResponse(BaseModel):
     latitude: float
     longitude: float
     timestamp: str
+
+
+class VehicleResponse(BaseModel):
+    vin: str
+    brand: Optional[str]
+    model: Optional[str]
+    registrationNumber: Optional[str]
+    energy: Optional[str]
+    picture: Optional[str]
 
 
 @app.get("/")
@@ -88,6 +97,17 @@ async def handle_request(client_action, email, password, *args):
         # Fallback
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@app.get("/api/v1/vehicles", response_model=List[VehicleResponse])
+async def get_vehicles(
+        x_renault_email: str = Header(...),
+        x_renault_password: str = Header(...)):
+    return await handle_request(
+        lambda c: c.get_vehicles(),
+        x_renault_email,
+        x_renault_password
+    )
 
 
 @app.get("/api/v1/vehicle/{vin}/battery", response_model=BatteryStatusResponse)
