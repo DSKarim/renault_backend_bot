@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Header, status
 from fastapi.staticfiles import StaticFiles
 from myrenault.client import MyRenaultClient
@@ -20,8 +21,8 @@ class BatteryStatusResponse(BaseModel):
     batteryAutonomy: int
     chargingStatus: float
     plugStatus: int
-    batteryTemperature: int
-    chargingInstantaneousPower: float
+    batteryTemperature: Optional[int]
+    chargingInstantaneousPower: Optional[float]
     timestamp: str
 
 
