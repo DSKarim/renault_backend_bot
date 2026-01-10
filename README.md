@@ -95,10 +95,18 @@ curl -X 'GET' \
 
 ## 🗺️ Roadmap
 
+### ✨ Features
 - [ ] **Android Application**: A native Android app is planned to consume this API. See [PLAN_ANDROID.md](PLAN_ANDROID.md) for details.
 - [ ] **Wear OS Support**: Companion app for smartwatches.
 - [ ] **Charging Schedule**: Ability to set charging schedules via API.
 - [ ] **Notifications**: Push notifications for battery levels (via Firebase).
+
+### 🛠️ Technical Improvements
+- [ ] **Env Var Fallback**: Implement optional headers if environment variables are set (fix discrepancy).
+- [ ] **CI/CD Pipeline**: Add GitHub Actions for linting and testing.
+- [ ] **Test Coverage**: Add more unit tests for error scenarios (timeouts, upstream errors).
+- [ ] **Session Caching**: Reuse Renault API sessions to improve performance and reduce login requests.
+- [ ] **Structured Logging**: Replace standard logging with structured JSON logging for better observability.
 
 ## ⚠️ Disclaimer
 
