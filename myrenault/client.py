@@ -64,6 +64,47 @@ class MyRenaultClient:
 
         return self.client
 
+    async def get_vehicles(self):
+        """
+        Retrieve all vehicles available across all accounts.
+        Returns a list of dictionaries with vehicle details.
+        """
+        client = await self.get_session()
+        try:
+            accounts = await client.get_api_accounts()
+        except Exception as e:
+            logger.error(f"Failed to retrieve API accounts: {e}")
+            raise
+
+        logger.info(f"Found {len(accounts)} Renault accounts.")
+
+        vehicle_list = []
+        for account in accounts:
+            try:
+                vehicles_response = await account.get_vehicles()
+                vehicles = vehicles_response.vehicleLinks or []
+
+                for v in vehicles:
+                    details = v.vehicleDetails
+
+                    vehicle_data = {
+                        "vin": v.vin,
+                        "brand": details.get_brand_label() if details else None,
+                        "model": details.get_model_label() if details else None,
+                        "registrationNumber": details.registrationNumber if details else None,
+                        "energy": details.get_energy_code() if details else None,
+                        "picture": details.get_picture() if details else None
+                    }
+                    vehicle_list.append(vehicle_data)
+
+            except Exception as e:
+                logger.error(
+                    f"Error checking account {account.account_id}: {e}"
+                )
+                continue
+
+        return vehicle_list
+
     async def get_vehicle(self, vin):
         # Clean VIN input
         vin = vin.strip().upper()
