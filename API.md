@@ -15,6 +15,15 @@ L'API ne possède pas d'endpoint de "login" persistent qui retourne un token. Au
 
 ## Endpoints
 
+### 0. Liste des Véhicules
+
+#### Obtenir la liste des véhicules
+Retourne la liste des véhicules associés au compte utilisateur.
+
+*   **URL** : `/api/v1/vehicles`
+*   **Méthode** : `GET`
+*   **Headers** : Auth headers requis.
+
 ### 1. Informations Véhicule
 
 #### Obtenir le statut de la batterie
@@ -86,4 +95,12 @@ Lance la pré-climatisation du véhicule.
 *   **Headers** : Auth headers requis.
 
 ## Gestion des Erreurs
-En cas d'erreur (identifiants invalides, erreur réseau Renault, VIN incorrect), l'API retourne un code HTTP **500** avec le détail de l'exception dans le corps de la réponse JSON.
+L'API utilise les codes HTTP standards pour indiquer le type d'erreur :
+
+*   **401 Unauthorized** : Identifiants invalides ou refusés par l'API Renault.
+*   **404 Not Found** : Le VIN spécifié est introuvable.
+*   **502 Bad Gateway** : Erreur provenant de l'API Renault (ex: service indisponible, réponse inattendue).
+*   **504 Gateway Timeout** : La requête vers l'API Renault a expiré (timeout).
+*   **500 Internal Server Error** : Erreur interne inattendue.
+
+Le corps de la réponse JSON contient généralement un champ `detail` expliquant l'erreur.
