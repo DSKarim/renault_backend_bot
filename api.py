@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Header, status
 from fastapi.staticfiles import StaticFiles
 from myrenault.client import MyRenaultClient
@@ -17,32 +17,32 @@ DEFAULT_TIMEOUT = 30  # seconds
 
 
 class BatteryStatusResponse(BaseModel):
-    batteryLevel: int
-    batteryAutonomy: int
-    chargingStatus: float
-    plugStatus: int
-    batteryTemperature: Optional[int]
-    chargingInstantaneousPower: Optional[float]
-    timestamp: str
+    batteryLevel: Optional[int] = None
+    batteryAutonomy: Optional[int] = None
+    chargingStatus: Optional[int] = None
+    plugStatus: Optional[int] = None
+    batteryTemperature: Optional[int] = None
+    chargingInstantaneousPower: Optional[float] = None
+    timestamp: Optional[str] = None
 
 
 class CockpitResponse(BaseModel):
-    totalMileage: float
+    totalMileage: Optional[float] = None
 
 
 class LocationResponse(BaseModel):
-    latitude: float
-    longitude: float
-    timestamp: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    timestamp: Optional[str] = None
 
 
 class VehicleResponse(BaseModel):
     vin: str
-    brand: Optional[str]
-    model: Optional[str]
-    registrationNumber: Optional[str]
-    energy: Optional[str]
-    picture: Optional[str]
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    registrationNumber: Optional[str] = None
+    energy: Optional[str] = None
+    picture: Optional[str] = None
 
 
 @app.get("/")
@@ -99,7 +99,7 @@ async def handle_request(client_action, email, password, *args):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@app.get("/api/v1/vehicles", response_model=List[VehicleResponse])
+@app.get("/api/v1/vehicles", response_model=list[VehicleResponse])
 async def get_vehicles(
         x_renault_email: str = Header(...),
         x_renault_password: str = Header(...)):
