@@ -1,46 +1,80 @@
-# Plan Simplifié : Application Android Basic Renault
+# Plan : Application Android Renault
 
-Ce plan vise à créer une application Android minimale et fonctionnelle permettant de se connecter, voir les infos essentielles et envoyer des commandes.
+Application Android native pour interagir avec le backend MyRenault API.
 
-## Architecture Simplifiée
-*   **Langage** : Kotlin
-*   **UI** : Jetpack Compose (une seule Activity)
-*   **Réseau** : Retrofit + OkHttp
+## Architecture
 
-## Étapes de Développement
+| Composant | Technologie |
+|---|---|
+| Langage | Kotlin |
+| UI | Jetpack Compose (single Activity) |
+| Reseau | Retrofit + OkHttp |
+| Stockage securise | EncryptedSharedPreferences |
+| Architecture | MVVM + StateFlow |
 
-### 1. Configuration du Projet
-*   Créer un projet "Empty Compose Activity".
-*   Ajouter les dépendances dans `build.gradle` :
-    *   `retrofit` & `converter-gson` (pour l'API)
-    *   `okhttp` & `logging-interceptor`
-    *   `androidx.security:security-crypto` (pour stocker le mot de passe localement)
+## Ecrans prevus
 
-### 2. Écran de Login (Authentification)
-*   Créer un écran avec deux champs texte : `Email` et `Password`.
-*   Ajouter un champ texte pour le `VIN` (Vehicle Identification Number) ou le coder en dur pour commencer.
-*   Au clic sur "Connexion" :
-    *   Sauvegarder les identifiants de manière sécurisée (EncryptedSharedPreferences).
-    *   Naviguer vers l'écran principal.
-*   *Note : L'API ne fournit pas de token, l'appli doit renvoyer l'email/password dans le header de chaque requête.*
+### 1. Ecran de login
+- Champs : email, mot de passe, VIN
+- Stockage securise des identifiants (EncryptedSharedPreferences)
+- Les identifiants sont renvoyes dans les headers de chaque requete (API stateless)
 
-### 3. Couche Réseau (API Client)
-*   Définir une interface Retrofit `RenaultService` correspondant à `API.md`.
-*   Configurer un `OkHttpClient` avec un `Interceptor` qui ajoute automatiquement les headers :
-    *   `x-renault-email`
-    *   `x-renault-password`
-    (récupérés depuis les préférences sécurisées).
+### 2. Dashboard principal
+- **Batterie** : niveau (%), autonomie (km), statut de charge, statut prise
+- **Cockpit** : kilometrage total
+- **Localisation** : latitude/longitude (texte)
+- Bouton "Actualiser" pour relancer les requetes
 
-### 4. Écran Principal (Dashboard)
-*   Afficher les informations textuelles simples (appels GET) :
-    *   **Batterie** : Pourcentage et Autonomie (Endpoint `/battery`).
-    *   **Cockpit** : Kilométrage total (Endpoint `/cockpit`).
-    *   **Localisation** : Latitude/Longitude (texte simple) (Endpoint `/location`).
-*   Ajouter un bouton "Actualiser" pour relancer les requêtes.
+### 3. Commandes a distance
+- Boutons d'action en bas de l'ecran :
+  - Demarrer / Arreter climatisation
+  - Demarrer / Arreter charge
+  - Clignoter phares
+  - Klaxonner
+- Toast de confirmation succes/echec
 
-### 5. Commandes (Actions)
-*   Ajouter des boutons simples en bas de l'écran principal pour les appels POST :
-    *   [Démarrer Clim] / [Arrêter Clim]
-    *   [Démarrer Charge] / [Arrêter Charge]
-    *   [Phares] / [Klaxon]
-*   Afficher un "Toast" (message temporaire) pour confirmer le succès ou l'échec de la commande.
+## Etapes de developpement
+
+### Phase 1 : Configuration du projet
+- Creer un projet "Empty Compose Activity"
+- Dependances `build.gradle` :
+  - `retrofit` + `converter-gson`
+  - `okhttp` + `logging-interceptor`
+  - `androidx.security:security-crypto`
+
+### Phase 2 : Couche reseau
+- Interface Retrofit `RenaultService` mappant les endpoints de [API.md](API.md) :
+  - `GET /api/v1/vehicles`
+  - `GET /api/v1/vehicle/{vin}/battery`
+  - `GET /api/v1/vehicle/{vin}/cockpit`
+  - `GET /api/v1/vehicle/{vin}/location`
+  - `POST /api/v1/vehicle/{vin}/hvac-start`
+  - `POST /api/v1/vehicle/{vin}/hvac-stop`
+  - `POST /api/v1/vehicle/{vin}/charge-start`
+  - `POST /api/v1/vehicle/{vin}/charge-stop`
+  - `POST /api/v1/vehicle/{vin}/lights`
+  - `POST /api/v1/vehicle/{vin}/honk`
+- `OkHttpClient` avec `Interceptor` ajoutant automatiquement les headers auth
+
+### Phase 3 : Ecran de login
+- UI Compose avec champs texte et bouton connexion
+- Sauvegarde des identifiants dans EncryptedSharedPreferences
+- Navigation vers le dashboard
+
+### Phase 4 : Dashboard et donnees
+- Appels GET au demarrage (batterie, cockpit, localisation)
+- Affichage des donnees avec gestion des etats (loading, success, error)
+- Pull-to-refresh
+
+### Phase 5 : Commandes
+- Boutons POST pour les actions a distance
+- Feedback utilisateur (Toast / Snackbar)
+- Confirmation avant actions critiques (klaxon)
+
+### Phase 6 (future) : Ameliorations
+- Selection du vehicule si plusieurs VINs
+- Widget home screen (batterie + autonomie)
+- Notifications push (batterie faible, charge terminee)
+- Support Wear OS
+- Carte interactive pour la localisation
+- Theme sombre

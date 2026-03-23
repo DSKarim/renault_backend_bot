@@ -1,106 +1,182 @@
 # Documentation de l'API Renault Wrapper
 
-Cette API sert de passerelle (wrapper) vers les services MyRenault. Elle simplifie l'interaction en gérant l'authentification de session à chaque requête.
+API passerelle (wrapper) vers les services MyRenault. Gere l'authentification de session a chaque requete de maniere stateless.
 
 ## Base URL
-L'URL de base dépend du déploiement. Pour le développement local :
-`http://localhost:8000`
+
+Developpement local : `http://localhost:8000`
 
 ## Authentification
-L'API ne possède pas d'endpoint de "login" persistent qui retourne un token. Au lieu de cela, chaque requête vers les endpoints protégés (`/api/v1/*`) doit inclure les identifiants Renault de l'utilisateur dans les headers HTTP.
 
-**Headers Requis :**
-*   `x-renault-email`: L'adresse email du compte MyRenault.
-*   `x-renault-password`: Le mot de passe du compte MyRenault.
+Aucun endpoint de login persistant. Chaque requete vers `/api/v1/*` doit inclure les identifiants dans les headers HTTP.
+
+**Headers requis :**
+
+| Header | Description |
+|---|---|
+| `x-renault-email` | Adresse email du compte MyRenault |
+| `x-renault-password` | Mot de passe du compte MyRenault |
+
+**Fallback :** Si les headers sont absents, les variables d'environnement `RENAULT_EMAIL` et `RENAULT_PASSWORD` sont utilisees.
 
 ## Endpoints
 
-### 0. Liste des Véhicules
+### Liste des vehicules
 
-#### Obtenir la liste des véhicules
-Retourne la liste des véhicules associés au compte utilisateur.
+Retourne tous les vehicules associes au compte utilisateur (parcours de tous les comptes Renault).
 
-*   **URL** : `/api/v1/vehicles`
-*   **Méthode** : `GET`
-*   **Headers** : Auth headers requis.
+- **URL** : `GET /api/v1/vehicles`
+- **Headers** : Auth headers requis
 
-### 1. Informations Véhicule
+**Reponse** (`200 OK`) :
+```json
+[
+  {
+    "vin": "VF1XXXXXXXXXX",
+    "brand": "RENAULT",
+    "model": "ZOE",
+    "registrationNumber": "AB-123-CD",
+    "energy": "ELEC",
+    "picture": "https://..."
+  }
+]
+```
 
-#### Obtenir le statut de la batterie
-Retourne le niveau de charge, l'autonomie, et le statut de branchement.
+### Statut de la batterie
 
-*   **URL** : `/api/v1/vehicle/{vin}/battery`
-*   **Méthode** : `GET`
-*   **URL Params** : `vin` (Vehicle Identification Number)
-*   **Headers** : Auth headers requis.
+Retourne le niveau de charge, l'autonomie, le statut de branchement et la puissance de charge.
 
-#### Obtenir les infos du cockpit
-Retourne le kilométrage total et le niveau de carburant (si hybride).
+- **URL** : `GET /api/v1/vehicle/{vin}/battery`
+- **Parametre URL** : `vin` - Vehicle Identification Number
+- **Headers** : Auth headers requis
 
-*   **URL** : `/api/v1/vehicle/{vin}/cockpit`
-*   **Méthode** : `GET`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+**Reponse** (`200 OK`) :
+```json
+{
+  "batteryLevel": 75,
+  "batteryAutonomy": 180,
+  "chargingStatus": 0,
+  "plugStatus": 0,
+  "batteryTemperature": 20,
+  "chargingInstantaneousPower": null,
+  "timestamp": "2026-03-23T10:30:00Z"
+}
+```
 
-#### Obtenir la localisation
-Retourne les coordonnées GPS du véhicule.
+| Champ | Type | Description |
+|---|---|---|
+| `batteryLevel` | int | Niveau de batterie en % |
+| `batteryAutonomy` | int | Autonomie estimee en km |
+| `chargingStatus` | int | 0 = pas en charge, 1 = en charge |
+| `plugStatus` | int | 0 = debranche, 1 = branche |
+| `batteryTemperature` | int | Temperature batterie en C |
+| `chargingInstantaneousPower` | float | Puissance de charge instantanee en kW |
+| `timestamp` | str | Horodatage de la derniere mise a jour |
 
-*   **URL** : `/api/v1/vehicle/{vin}/location`
-*   **Méthode** : `GET`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+### Cockpit
+
+Retourne le kilometrage total du vehicule.
+
+- **URL** : `GET /api/v1/vehicle/{vin}/cockpit`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
+
+**Reponse** (`200 OK`) :
+```json
+{
+  "totalMileage": 45230.5
+}
+```
+
+### Localisation
+
+Retourne les coordonnees GPS du vehicule.
+
+- **URL** : `GET /api/v1/vehicle/{vin}/location`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
+
+**Reponse** (`200 OK`) :
+```json
+{
+  "latitude": 48.8566,
+  "longitude": 2.3522,
+  "timestamp": "2026-03-23T10:30:00Z"
+}
+```
 
 ---
 
-### 2. Commandes à Distance (Actions)
+### Commandes a distance
 
-#### Démarrer la climatisation (HVAC)
-Lance la pré-climatisation du véhicule.
+#### Demarrer la climatisation (HVAC)
 
-*   **URL** : `/api/v1/vehicle/{vin}/hvac-start`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Query Params** :
-    *   `temp` (float, optionnel) : La température cible (défaut: 21.0).
-*   **Headers** : Auth headers requis.
+Lance la pre-climatisation du vehicule a la temperature specifiee.
 
-#### Arrêter la climatisation (HVAC)
-*   **URL** : `/api/v1/vehicle/{vin}/hvac-stop`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+- **URL** : `POST /api/v1/vehicle/{vin}/hvac-start`
+- **Parametre URL** : `vin`
+- **Query params** :
+  - `temp` (float, optionnel) : Temperature cible en C (defaut: 21.0)
+- **Headers** : Auth headers requis
 
-#### Démarrer la charge
-*   **URL** : `/api/v1/vehicle/{vin}/charge-start`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+#### Arreter la climatisation (HVAC)
 
-#### Arrêter la charge
-*   **URL** : `/api/v1/vehicle/{vin}/charge-stop`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+- **URL** : `POST /api/v1/vehicle/{vin}/hvac-stop`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
 
-#### Faire clignoter les phares
-*   **URL** : `/api/v1/vehicle/{vin}/lights`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
+#### Demarrer la charge
+
+- **URL** : `POST /api/v1/vehicle/{vin}/charge-start`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
+
+#### Arreter la charge
+
+Utilise un payload personnalise avec l'action `cancel` (au lieu de `stop`) pour assurer la compatibilite avec certains vehicules (Zoe Phase 2).
+
+- **URL** : `POST /api/v1/vehicle/{vin}/charge-stop`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
+
+#### Clignoter les phares
+
+Permet de localiser le vehicule en faisant clignoter les phares.
+
+- **URL** : `POST /api/v1/vehicle/{vin}/lights`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
 
 #### Klaxonner
-*   **URL** : `/api/v1/vehicle/{vin}/honk`
-*   **Méthode** : `POST`
-*   **URL Params** : `vin`
-*   **Headers** : Auth headers requis.
 
-## Gestion des Erreurs
-L'API utilise les codes HTTP standards pour indiquer le type d'erreur :
+Permet de localiser le vehicule en actionnant le klaxon.
 
-*   **401 Unauthorized** : Identifiants invalides ou refusés par l'API Renault.
-*   **404 Not Found** : Le VIN spécifié est introuvable.
-*   **502 Bad Gateway** : Erreur provenant de l'API Renault (ex: service indisponible, réponse inattendue).
-*   **504 Gateway Timeout** : La requête vers l'API Renault a expiré (timeout).
-*   **500 Internal Server Error** : Erreur interne inattendue.
+- **URL** : `POST /api/v1/vehicle/{vin}/honk`
+- **Parametre URL** : `vin`
+- **Headers** : Auth headers requis
 
-Le corps de la réponse JSON contient généralement un champ `detail` expliquant l'erreur.
+---
+
+### Interface web
+
+- **URL** : `GET /`
+- Sert la page `static/index.html` permettant de tester tous les endpoints depuis un navigateur
+
+## Gestion des erreurs
+
+| Code HTTP | Signification | Cause |
+|---|---|---|
+| `401 Unauthorized` | Identifiants invalides | Credentials refuses par l'API Renault (HTTP 401/403) |
+| `404 Not Found` | VIN introuvable | Le VIN n'existe dans aucun compte associe |
+| `422 Unprocessable Entity` | Headers manquants | Les headers `x-renault-email` ou `x-renault-password` sont absents |
+| `500 Internal Server Error` | Erreur interne | Exception non prevue |
+| `502 Bad Gateway` | Erreur API Renault | `RenaultException` ou erreur HTTP upstream |
+| `504 Gateway Timeout` | Timeout | La requete vers l'API Renault a depasse 30 secondes |
+
+Le corps de la reponse JSON contient un champ `detail` expliquant l'erreur :
+
+```json
+{
+  "detail": "Vehicle with VIN XXXXX not found in any account. Found: [...]"
+}
+```

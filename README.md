@@ -1,113 +1,178 @@
-# 🚗 MyRenault API Backend
+# MyRenault API Backend
 
-A generic, stateless FastAPI backend for controlling Renault electric vehicles (ZOE, Megane E-Tech, Twingo ZE, etc.) via the unofficial My Renault API.
+Backend FastAPI stateless pour le controle de vehicules electriques Renault (ZOE, Megane E-Tech, Twingo ZE, etc.) via l'API non officielle My Renault.
 
-This project wraps the [renault-api](https://github.com/hacf-fr/renault-api) library into a RESTful API, designed to serve mobile applications (like the [planned Android App](PLAN_ANDROID.md)), dashboards, or home automation systems.
+Ce projet encapsule la librairie [renault-api](https://github.com/hacf-fr/renault-api) dans une API RESTful, concue pour servir des applications mobiles (voir le [plan Android](PLAN_ANDROID.md)), des dashboards ou des systemes domotiques.
 
-## ✨ Features
+## Fonctionnalites implementees
 
-- **🔋 Battery Status**: Get battery level (%), autonomy (km), charging status, and plug status.
-- **🛣️ Cockpit**: Retrieve total mileage.
-- **📍 Location**: Get the vehicle's GPS position (latitude, longitude).
-- **🌡️ HVAC Control**: Start (with temperature) or stop air conditioning/heating.
-- **⚡ Charge Control**: Start or cancel charging.
-- **🔔 Alerts**: Blink lights or honk (to find the vehicle).
-- **🔒 Multi-User**: Stateless architecture allows any user to connect by providing credentials in request headers.
+### Consultation (GET)
 
-## 🚀 Getting Started
+| Endpoint | Description | Donnees retournees |
+|---|---|---|
+| `GET /api/v1/vehicles` | Liste des vehicules du compte | VIN, marque, modele, immatriculation, energie, photo |
+| `GET /api/v1/vehicle/{vin}/battery` | Statut batterie | Niveau (%), autonomie (km), statut charge, statut prise, temperature, puissance instantanee |
+| `GET /api/v1/vehicle/{vin}/cockpit` | Tableau de bord | Kilometrage total |
+| `GET /api/v1/vehicle/{vin}/location` | Localisation GPS | Latitude, longitude, horodatage |
 
-### Prerequisites
+### Commandes a distance (POST)
+
+| Endpoint | Description | Parametres |
+|---|---|---|
+| `POST /api/v1/vehicle/{vin}/hvac-start` | Demarrer la climatisation | `temp` (defaut: 21.0) |
+| `POST /api/v1/vehicle/{vin}/hvac-stop` | Arreter la climatisation | - |
+| `POST /api/v1/vehicle/{vin}/charge-start` | Demarrer la charge | - |
+| `POST /api/v1/vehicle/{vin}/charge-stop` | Arreter la charge | - |
+| `POST /api/v1/vehicle/{vin}/lights` | Clignoter les phares | - |
+| `POST /api/v1/vehicle/{vin}/honk` | Klaxonner | - |
+
+### Architecture et fonctions internes
+
+- **Authentification stateless** : identifiants transmis par headers HTTP (`x-renault-email`, `x-renault-password`) a chaque requete, aucune session persistante
+- **Fallback variables d'environnement** : `RENAULT_EMAIL` et `RENAULT_PASSWORD` utilises si les headers sont absents
+- **Support multi-utilisateurs** : architecture sans etat permettant a plusieurs utilisateurs de se connecter simultanement
+- **Support multi-comptes** : parcours automatique de tous les comptes Renault associes a l'utilisateur
+- **Optimisation compte unique** : si un seul compte est detecte, le listing des vehicules est skippe (economie d'un appel API)
+- **Cache vehicules** : les objets vehicule sont mis en cache par VIN pour eviter les appels redondants
+- **Monitoring des requetes** : decorateur `@monitor_request` comptant les requetes totales, succes et echecs
+- **Statistiques** : uptime, taille du cache, compteurs de requetes via `get_stats()`
+- **Verification de version** : comparaison de la version locale de `renault-api` avec la derniere version PyPI
+- **Fix charge-stop** : payload personnalise avec action `cancel` au lieu de `stop` pour compatibilite Zoe Phase 2
+- **Barre de progression** : utilitaire texte pour visualiser un pourcentage (`get_progress_bar()`)
+- **Gestion d'erreurs robuste** : mapping HTTP 401/404/502/504/500 selon le type d'exception
+- **Interface web** : page HTML statique (`/static/index.html`) pour tester tous les endpoints depuis un navigateur
+- **Modeles Pydantic** : validation des reponses (`BatteryStatusResponse`, `CockpitResponse`, `LocationResponse`, `VehicleResponse`)
+- **Tests unitaires** : suite pytest avec mocks async (batterie, auth, headers manquants, liste vehicules)
+
+## Stack technique
+
+| Composant | Technologie |
+|---|---|
+| Framework web | FastAPI + Uvicorn |
+| Langage | Python 3.12+ |
+| API Renault | renault-api (non officielle) |
+| HTTP async | aiohttp, httpx |
+| Validation | Pydantic |
+| Tests | pytest + unittest.mock |
+| Config | python-dotenv |
+| Conteneurisation | Docker + Docker Compose |
+| Frontend | HTML5 / JavaScript vanilla |
+
+## Demarrage rapide
+
+### Prerequis
 
 - Python 3.12+
-- A valid My Renault account (Email & Password)
-- Your Vehicle Identification Number (VIN)
+- Un compte My Renault valide (email + mot de passe)
+- Le VIN de votre vehicule
 
-### Local Installation
+### Installation locale
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-repo/myrenault-api.git
-    cd myrenault-api
-    ```
-
-2.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-3.  **Run the server:**
-    ```bash
-    uvicorn api:app --reload
-    ```
-    The API will be available at `http://127.0.0.1:8000`.
-
-### Docker Deployment
-
-1.  **Build and run with Docker Compose:**
-    ```bash
-    docker-compose up -d --build
-    ```
-
-2.  **Verify:**
-    Check the logs to ensure the server is running:
-    ```bash
-    docker-compose logs -f
-    ```
-
-## 📖 API Usage
-
-The API uses **Headers** for authentication. You must provide your Renault credentials with every request. This allows the backend to be stateless and support multiple users.
-
-**Required Headers:**
-- `x-renault-email`: Your My Renault email address.
-- `x-renault-password`: Your My Renault password.
-
-*(Note: You can also set `RENAULT_EMAIL` and `RENAULT_PASSWORD` as environment variables for a default fallback, useful for single-user deployments).*
-
-### Examples
-
-#### 1. Get Battery Status
 ```bash
-curl -X 'GET' \
-  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/battery' \
-  -H 'accept: application/json' \
+git clone https://github.com/DSKarim/renault_backend_bot.git
+cd renault_backend_bot
+pip install -r requirements.txt
+uvicorn api:app --reload
+```
+
+L'API est disponible sur `http://127.0.0.1:8000`.
+
+### Docker
+
+```bash
+docker-compose up -d --build
+docker-compose logs -f
+```
+
+## Utilisation
+
+Chaque requete necessite les headers d'authentification :
+
+```bash
+curl -X GET 'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/battery' \
   -H 'x-renault-email: your.email@example.com' \
   -H 'x-renault-password: your_password'
 ```
 
-#### 2. Start HVAC (Air Conditioning)
 ```bash
-curl -X 'POST' \
-  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/hvac-start?temp=21' \
-  -H 'accept: application/json' \
+curl -X POST 'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/hvac-start?temp=21' \
   -H 'x-renault-email: your.email@example.com' \
   -H 'x-renault-password: your_password'
 ```
 
-#### 3. Get Location
-```bash
-curl -X 'GET' \
-  'http://127.0.0.1:8000/api/v1/vehicle/YOUR_VIN/location' \
-  -H 'accept: application/json' \
-  -H 'x-renault-email: your.email@example.com' \
-  -H 'x-renault-password: your_password'
+Voir [API.md](API.md) pour la documentation complete des endpoints.
+
+## Structure du projet
+
+```
+renault_backend_bot/
+├── api.py                   # Application FastAPI (routes, modeles, gestion d'erreurs)
+├── myrenault/
+│   ├── __init__.py
+│   ├── client.py            # MyRenaultClient (logique metier, cache, monitoring)
+│   └── utils.py             # Utilitaires (barre de progression)
+├── static/
+│   └── index.html           # Interface web de test
+├── tests/
+│   ├── __init__.py
+│   └── test_api.py          # Tests unitaires pytest
+├── Dockerfile               # Image Docker (Python 3.12-slim)
+├── docker-compose.yml       # Orchestration Docker
+├── requirements.txt         # Dependances Python
+├── .env.example             # Template variables d'environnement
+├── API.md                   # Documentation API detaillee
+└── PLAN_ANDROID.md          # Plan application Android
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
-### ✨ Features
-- [ ] **Android Application**: A native Android app is planned to consume this API. See [PLAN_ANDROID.md](PLAN_ANDROID.md) for details.
-- [ ] **Wear OS Support**: Companion app for smartwatches.
-- [ ] **Charging Schedule**: Ability to set charging schedules via API.
-- [ ] **Notifications**: Push notifications for battery levels (via Firebase).
+### Fonctionnalites a venir
 
-### 🛠️ Technical Improvements
-- [ ] **Env Var Fallback**: Implement optional headers if environment variables are set (fix discrepancy).
-- [ ] **CI/CD Pipeline**: Add GitHub Actions for linting and testing.
-- [ ] **Test Coverage**: Add more unit tests for error scenarios (timeouts, upstream errors).
-- [ ] **Session Caching**: Reuse Renault API sessions to improve performance and reduce login requests.
-- [ ] **Structured Logging**: Replace standard logging with structured JSON logging for better observability.
+- [ ] **Application Android** : app native Kotlin + Jetpack Compose (voir [PLAN_ANDROID.md](PLAN_ANDROID.md))
+- [ ] **Wear OS** : app companion pour montres connectees
+- [ ] **Programmation de charge** : definir des horaires de charge via l'API
+- [ ] **Notifications push** : alertes batterie via Firebase
+- [ ] **Historique de charge** : stocker et consulter l'historique des sessions de charge
+- [ ] **Widget Android** : widget home screen affichant batterie et autonomie
+- [ ] **Carte interactive** : affichage de la localisation sur une carte dans l'interface web
 
-## ⚠️ Disclaimer
+### Ameliorations techniques
 
-This project uses an **unofficial API** from Renault. It may change or break at any time without notice. Use this software at your own risk. The developers are not affiliated with Renault.
+- [ ] **Pipeline CI/CD** : GitHub Actions pour linting, tests et deploiement automatique
+- [ ] **Couverture de tests** : tests supplementaires (timeouts, erreurs upstream, multi-comptes, cache)
+- [ ] **Cache de sessions Renault** : reutiliser les sessions API pour reduire les appels login
+- [ ] **Logs structures** : logging JSON pour meilleure observabilite
+- [ ] **Rate limiting** : protection contre les abus et les appels excessifs
+- [ ] **Documentation OpenAPI** : enrichir les schemas FastAPI avec descriptions et exemples
+- [ ] **Health check endpoint** : `GET /health` pour monitoring et orchestration Docker
+- [ ] **Support HTTPS** : configuration TLS pour deploiements production
+- [ ] **Gestion des tokens** : mise en cache et refresh automatique des tokens Renault
+
+### Fait
+
+- [x] API REST stateless avec FastAPI
+- [x] Authentification par headers HTTP
+- [x] Fallback variables d'environnement
+- [x] Liste des vehicules
+- [x] Statut batterie
+- [x] Cockpit (kilometrage)
+- [x] Localisation GPS
+- [x] Controle climatisation (start/stop avec temperature)
+- [x] Controle charge (start/stop)
+- [x] Alertes vehicule (phares, klaxon)
+- [x] Support multi-comptes et multi-utilisateurs
+- [x] Optimisation compte unique
+- [x] Cache vehicules par VIN
+- [x] Monitoring des requetes (decorateur)
+- [x] Fix charge-stop pour Zoe Phase 2
+- [x] Verification de version renault-api
+- [x] Interface web de test
+- [x] Modeles de reponse Pydantic
+- [x] Conteneurisation Docker + Compose
+- [x] Tests unitaires pytest
+- [x] Documentation API (API.md)
+- [x] Plan application Android (PLAN_ANDROID.md)
+
+## Avertissement
+
+Ce projet utilise une **API non officielle** de Renault. Elle peut changer ou cesser de fonctionner a tout moment sans preavis. Utilisation a vos risques et perils. Les developpeurs ne sont pas affilies a Renault.
