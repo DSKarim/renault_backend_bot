@@ -37,6 +37,8 @@
 
     <div class="actions">
         <h3>Actions</h3>
+        <button onclick="callApi('GET', 'vehicles')">Get Vehicles</button>
+        <hr>
         <button onclick="callApi('GET', 'battery')">Get Battery Status</button>
         <button onclick="callApi('GET', 'cockpit')">Get Cockpit</button>
         <button onclick="callApi('GET', 'location')">Get Location</button>
@@ -59,8 +61,13 @@
             const vin = document.getElementById('vin').value;
             const resultDiv = document.getElementById('result');
 
-            if (!email || !password || !vin) {
-                alert("Please fill in Email, Password and VIN");
+            if (!email || !password) {
+                alert("Please fill in Email and Password");
+                return;
+            }
+
+            if (endpoint !== 'vehicles' && !vin) {
+                alert("Please fill in VIN for this action");
                 return;
             }
 
@@ -71,7 +78,9 @@
                 'x-renault-password': password
             };
 
-            const url = `/api/v1/vehicle/${vin}/${endpoint}`;
+            const url = endpoint === 'vehicles'
+                ? '/api/v1/vehicles'
+                : `/api/v1/vehicle/${vin}/${endpoint}`;
 
             try {
                 const response = await fetch(url, {

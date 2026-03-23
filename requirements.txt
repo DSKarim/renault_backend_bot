@@ -5,3 +5,5 @@ aiohttp
 fastapi
 uvicorn
 aiofiles
+httpx
+pytest
